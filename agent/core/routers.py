@@ -14,7 +14,9 @@ wg_manager = WireGuardManager()
 async def add_peer(request: schemas.AgentAddPeerRequest):
     """Add a new peer to WireGuard."""
     try:
-        wg_manager.add_peer(request.public_key, request.allowed_ips)
+        wg_manager.add_peer(
+            request.public_key, request.allowed_ips, peer_id=request.peer_id
+        )
         logger.info("Adding peer %s", request.public_key)
         return schemas.AgentAddPeerResponse(success=True)
     except Exception as e:

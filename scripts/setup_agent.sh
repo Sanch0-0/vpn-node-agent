@@ -17,14 +17,13 @@ ENV_FILE="/opt/agent/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}ERROR: $ENV_FILE not found${NC}"
-    echo "Create it with: AGENT_TOKEN, CONTROL_PLANE_IP, NODE_ID"
+    echo "Create it with: CONTROLPLANE_IP, NODE_ID"
     exit 1
 fi
 
 source "$ENV_FILE"
 
-: "${AGENT_TOKEN:?Missing AGENT_TOKEN in $ENV_FILE}"
-: "${CONTROL_PLANE_IP:?Missing CONTROL_PLANE_IP in $ENV_FILE}"
+: "${CONTROLPLANE_IP:?Missing CONTROLPLANE_IP in $ENV_FILE}"
 : "${NODE_ID:?Missing NODE_ID in $ENV_FILE}"
 
 PORT=${PORT:-9000}

@@ -68,7 +68,7 @@ class WireGuardManager:
         if len(lines) < 2:
             peer_count = 0
         else:
-            peer_count = len(lines) - 1
+            peer_count = len(lines) - 1  # first line - interface, others - peers
 
         return {
             "interface": self.interface,

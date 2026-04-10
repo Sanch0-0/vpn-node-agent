@@ -2,8 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    AGENT_TOKEN: str
-    CONTROL_PLANE_IP: str  # for firewall rule
+    CONTROLPLANE_IP: str  # for firewall rule
 
     HOST: str = "127.0.0.1"
     PORT: int = 9000
