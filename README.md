@@ -33,7 +33,7 @@ The agent has no database, no user auth, and no business logic — it is intenti
 | Layer | Repository | Role |
 |---|---|---|
 | **ControlPlane** | `vpn-controlplane` | Users, devices, nodes, billing, audit |
-| **Node Agent** ← *you are here* | `vpn-node-agent` | WireGuard peer management on each node |
+| **Node Agent** ← *this repo* | `vpn-node-agent` | WireGuard peer management on each node |
 | **DataPlane** | `vpn-desktop` | Desktop client, tunnel establishment |
 
 ---
@@ -46,29 +46,6 @@ The agent has no database, no user auth, and no business logic — it is intenti
 - **Systemd integration** — runs as a hardened service with automatic restart
 - **Nginx reverse proxy** — TLS termination on port 443; internal FastAPI runs on `127.0.0.1:9000` (firewalled from the outside)
 - **Zero-touch bootstrap** — cloud-init provisions the node, generates WireGuard keys, enrolls with ControlPlane, and starts all services without manual SSH
-
----
-
-## Project structure
-
-```
-agent/
-├── main.py               # FastAPI app entrypoint
-├── routers.py            # Route definitions (/peers, /status, /wireguard/status)
-├── wireguard.py          # WireGuardManager — subprocess wrapper around wg CLI
-├── schemas.py            # Pydantic request/response models
-└── requirements.txt      # Minimal production dependencies
-
-scripts/
-├── setup_agent.sh        # Install deps, venv, nginx, systemd unit
-├── bootstrap_node.sh     # Enroll with ControlPlane, receive mTLS cert/key
-└── run.sh                # Activate venv and start uvicorn
-
-infra/
-└── nginx/
-    ├── nginx.conf        # Base nginx config (rate limiting zone)
-    └── agent.conf        # TLS + mTLS upstream block → 127.0.0.1:9000
-```
 
 ---
 
@@ -136,37 +113,6 @@ Total time from VM creation to ACTIVE: ~3–5 minutes.
 
 ---
 
-## Local development
-
-> The agent requires a Linux host with WireGuard installed. Running on macOS or Windows is not supported.
-
-```bash
-# Clone
-git clone --branch agent https://github.com/Sanch0-0/vpn-node-agent
-cd vpn-node-agent/agent
-
-# Virtual environment
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-
-# Environment
-cp .env.example .env
-# Fill in: CONTROLPLANE_URL, NODE_ID, WG_INTERFACE
-
-# Run (without nginx/mTLS for local testing)
-uvicorn main:app --host 127.0.0.1 --port 9000 --reload
-```
-
-To test WireGuard operations locally you need a running `wg0` interface:
-
-```bash
-sudo ip link add dev wg0 type wireguard
-sudo ip addr add 10.8.0.1/24 dev wg0
-sudo ip link set wg0 up
-```
-
----
-
 ## Environment variables
 
 | Variable | Required | Default | Description |
@@ -179,28 +125,13 @@ sudo ip link set wg0 up
 
 ---
 
-## Dependencies
-
-Minimal by design — only what the agent actually uses:
-
-```
-fastapi
-uvicorn[standard]
-pydantic
-python-dotenv
-```
-
-No ORM, no Redis, no task queue. The agent is stateless.
-
----
-
 ## Related repositories
 
 | Repository | Description |
 |---|---|
-| [`vpn-controlplane`](https://github.com/Sanch0-0/vpn-controlplane) | Main backend — users, devices, node lifecycle, audit |
+| [`VPN-desktop`](https://github.com/Sanch0-0/VPN-desktop) | Main backend — users, devices, node lifecycle, audit |
 | [`vpn-node-agent`](https://github.com/Sanch0-0/vpn-node-agent) | **This repo** — WireGuard peer management on provisioned nodes |
-| [`vpn-desktop`](https://github.com/Sanch0-0/vpn-desktop) | Desktop client (Flet/Python) — DataPlane |
+| [`vpn-client`](https://github.com/Sanch0-0/vpn-client) | Desktop client (Flet/Python) — DataPlane |
 
 ---
 
