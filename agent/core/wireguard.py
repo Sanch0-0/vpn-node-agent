@@ -78,7 +78,11 @@ class WireGuardManager:
         }
 
     def get_peers(self) -> List[Dict[str, Any]]:
-        output = self._run_wg_command(["show", self.interface, "dump"])
+        try:
+            output = self._run_wg_command(["show", self.interface, "dump"])
+        except RuntimeError:
+            return []
+
         lines = output.strip().split("\n")
         if len(lines) < 2:
             return []

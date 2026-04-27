@@ -17,13 +17,13 @@ ENV_FILE="/opt/agent/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}ERROR: $ENV_FILE not found${NC}"
-    echo "Create it with: CONTROLPLANE_IP, NODE_ID"
+    echo "Create it with: CONTROLPLANE_URL, NODE_ID"
     exit 1
 fi
 
 source "$ENV_FILE"
 
-: "${CONTROLPLANE_IP:?Missing CONTROLPLANE_IP in $ENV_FILE}"
+: "${CONTROLPLANE_URL:?Missing CONTROLPLANE_URL in $ENV_FILE}"
 : "${NODE_ID:?Missing NODE_ID in $ENV_FILE}"
 
 PORT=${PORT:-9000}
@@ -39,6 +39,7 @@ apt-get install -y -qq \
 
 # Repo already had cloned to /opt/agent-repo via cloud-init
 mkdir -p /opt/agent
+mkdir -p /opt/agent/nginx
 cp -r /opt/agent-repo/agent/* /opt/agent/
 cp -r /opt/agent-repo/infra/nginx/* /opt/agent/nginx/ 2>/dev/null || true
 
@@ -84,7 +85,8 @@ ExecStart=/opt/agent-repo/scripts/run.sh
 RestartSec=10
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
+ProtectSystem=strict
+ReadWritePaths=/opt/agent /var/log
 
 [Install]
 WantedBy=multi-user.target

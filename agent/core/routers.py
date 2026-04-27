@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 import logging
+import os
 
 from . import schemas
 from .wireguard import WireGuardManager
@@ -7,7 +8,7 @@ from .wireguard import WireGuardManager
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-wg_manager = WireGuardManager()
+wg_manager = WireGuardManager(interface=os.getenv("WG_INTERFACE", "wg0"))
 
 
 @router.post("/peers", response_model=schemas.AgentAddPeerResponse)
@@ -24,7 +25,9 @@ async def add_peer(request: schemas.AgentAddPeerRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/peers/{public_key}", response_model=schemas.AgentRemovePeerResponse)
+@router.delete(
+    "/peers/{public_key:path}", response_model=schemas.AgentRemovePeerResponse
+)
 async def remove_peer(public_key: str):
     """Remove a peer by public key."""
     try:

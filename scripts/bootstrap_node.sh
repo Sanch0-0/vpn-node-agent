@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CONTROLPLANE_IP=$1
+CONTROLPLANE_URL=$1
 NODE_ID=$2
 BOOTSTRAP_TOKEN=$3
 CERT_DIR="/etc/nginx/certs"
@@ -10,15 +10,14 @@ mkdir -p "$CERT_DIR"
 
 # Donwload CA from ControlPlane
 echo "Fetching CA certificate..."
-curl -sf "https://$CONTROLPLANE_IP/internal/ca" \
-  --insecure \
+curl -sf "$CONTROLPLANE_URL/internal/ca" \
   -o "$CERT_DIR/ca.crt" \
   || { echo "ERROR: Failed to fetch CA cert"; exit 1; }
 
 echo "Requesting node certificate..."
 response=$(curl -s \
   --cacert "$CERT_DIR/ca.crt" \
-  -X POST "https://$CONTROLPLANE_IP/internal/nodes/enroll" \
+  -X POST "$CONTROLPLANE_URL/internal/nodes/enroll" \
   -H "Content-Type: application/json" \
   -d "{\"node_id\":\"$NODE_ID\",\"token\":\"$BOOTSTRAP_TOKEN\"}")
 
