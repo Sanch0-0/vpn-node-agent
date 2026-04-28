@@ -1,92 +1,151 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+log() {
+    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')] $1${NC}"
+}
+
+error() {
+    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+}
+
+trap 'error "Failed at line $LINENO"' ERR
+
 echo -e "${GREEN}=== VPN Node Agent Setup Script ===${NC}"
 
+# ---------------------------
+# 1. Root check
+# ---------------------------
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}Must be run as root${NC}"
+   error "Must be run as root"
    exit 1
 fi
 
+# ---------------------------
+# 2. Env
+# ---------------------------
 ENV_FILE="/opt/agent/.env"
 
-if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${RED}ERROR: $ENV_FILE not found${NC}"
-    echo "Create it with: CONTROLPLANE_URL, NODE_ID"
+if [[ ! -f "$ENV_FILE" ]]; then
+    error "$ENV_FILE not found"
     exit 1
 fi
 
+# shellcheck disable=SC1090
 source "$ENV_FILE"
 
-: "${CONTROLPLANE_URL:?Missing CONTROLPLANE_URL in $ENV_FILE}"
-: "${NODE_ID:?Missing NODE_ID in $ENV_FILE}"
+: "${CONTROLPLANE_URL:?Missing CONTROLPLANE_URL}"
+: "${NODE_ID:?Missing NODE_ID}"
 
 PORT=${PORT:-9000}
 WG_INTERFACE=${WG_INTERFACE:-wg0}
 LOG_LEVEL=${LOG_LEVEL:-info}
 
-echo -e "${GREEN}Installing system dependencies...${NC}"
+# ---------------------------
+# 3. System deps
+# ---------------------------
+log "Installing system dependencies..."
+
 apt-get update -qq
+
 apt-get install -y -qq \
     python3 python3-pip python3-venv \
     wireguard wireguard-tools \
-    nginx jq curl git
+    nginx jq curl git ufw
 
-# Repo already had cloned to /opt/agent-repo via cloud-init
+# ---------------------------
+# 4. Runtime dirs
+# ---------------------------
+log "Preparing runtime directories..."
+
+rm -rf /opt/agent
 mkdir -p /opt/agent
 mkdir -p /opt/agent/nginx
+
+# ---------------------------
+# 5. Copy ONLY agent runtime code
+# ---------------------------
+log "Copying agent source from repo..."
+
 cp -r /opt/agent-repo/agent/* /opt/agent/
+
+# nginx configs (optional)
 cp -r /opt/agent-repo/infra/nginx/* /opt/agent/nginx/ 2>/dev/null || true
 
+# IMPORTANT: requirements is in repo root
+REQUIREMENTS_FILE="/opt/agent-repo/requirements.txt"
+
+if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
+    error "requirements.txt not found in repo root"
+    exit 1
+fi
+
+# ---------------------------
+# 6. Python venv
+# ---------------------------
+log "Creating Python venv..."
+
 cd /opt/agent
+
 python3 -m venv venv
+# shellcheck disable=SC1091
 source venv/bin/activate
+
 pip install --upgrade pip -q
-pip install -r requirements.txt -q
+pip install -r "$REQUIREMENTS_FILE" -q
 
-# UFW
-echo -e "${GREEN}Configuring firewall...${NC}"
-ufw allow 443/tcp
-ufw allow 51820/udp   # WireGuard
-ufw deny "$PORT"/tcp
-ufw --force enable
+# ---------------------------
+# 7. Firewall (safe mode)
+# ---------------------------
+log "Configuring firewall..."
 
-# Nginx
-echo -e "${GREEN}Configuring Nginx...${NC}"
+ufw allow 443/tcp || true
+ufw allow 51820/udp || true
+ufw allow "$PORT"/tcp || true
+
+ufw --force enable || true
+
+# ---------------------------
+# 8. Nginx
+# ---------------------------
+log "Configuring Nginx..."
+
 mkdir -p /etc/nginx/certs
 mkdir -p /etc/nginx/conf.d
 
 cp /opt/agent-repo/infra/nginx/nginx.conf /etc/nginx/nginx.conf
 cp /opt/agent-repo/infra/nginx/agent.conf /etc/nginx/conf.d/agent.conf
 
-nginx -t || { echo "ERROR: nginx config invalid"; exit 1; }
-systemctl enable nginx
-# will run after bootstrap_node.sh
+nginx -t
 
-# Systemd service
-echo -e "${GREEN}Creating systemd service...${NC}"
+systemctl enable nginx || true
+
+# ---------------------------
+# 9. Systemd service
+# ---------------------------
+log "Creating systemd service..."
+
 cat > /etc/systemd/system/vpn-agent.service <<EOF
 [Unit]
 Description=VPN Node Agent
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/agent
 EnvironmentFile=/opt/agent/.env
+ExecStart=/opt/agent/venv/bin/python /opt/agent/main.py
 Restart=always
-ExecStart=/opt/agent-repo/scripts/run.sh
-RestartSec=10
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/opt/agent /var/log
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -94,5 +153,5 @@ EOF
 
 systemctl daemon-reload
 systemctl enable vpn-agent.service
-# will start after nginx starts up with certificates 
-echo -e "${GREEN}Setup complete. Run bootstrap_node.sh next.${NC}"
+
+log "Setup complete. Run bootstrap_node.sh next."
