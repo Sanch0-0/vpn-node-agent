@@ -63,7 +63,6 @@ apt-get install -y -qq \
 # ---------------------------
 log "Preparing runtime directories..."
 
-rm -rf /opt/agent
 mkdir -p /opt/agent
 mkdir -p /opt/agent/nginx
 
@@ -137,8 +136,8 @@ Type=simple
 User=root
 WorkingDirectory=/opt/agent
 EnvironmentFile=/opt/agent/.env
-ExecStart=/opt/agent/venv/bin/python /opt/agent/main.py
 Restart=always
+ExecStart=/opt/agent/venv/bin/uvicorn main:app --host 127.0.0.1 --port 9000 --workers 1 --log-level info
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
