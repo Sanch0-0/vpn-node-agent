@@ -121,10 +121,6 @@ mkdir -p /etc/nginx/conf.d
 cp /opt/agent-repo/infra/nginx/nginx.conf /etc/nginx/nginx.conf
 cp /opt/agent-repo/infra/nginx/agent.conf /etc/nginx/conf.d/agent.conf
 
-nginx -t
-
-systemctl enable nginx || true
-
 # ---------------------------
 # 9. Systemd service
 # ---------------------------
@@ -150,8 +146,5 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-
-systemctl daemon-reload
-systemctl enable vpn-agent.service
 
 log "Setup complete. Run bootstrap_node.sh next."

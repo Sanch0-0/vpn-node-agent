@@ -33,3 +33,15 @@ else
     echo "ERROR: Enroll failed. Response: $response"
     exit 1
 fi
+
+# === Nginx configuration ===
+echo "Validating nginx config..."
+nginx -t || { echo "ERROR: nginx config invalid"; exit 1; }
+
+systemctl enable nginx
+systemctl restart nginx
+
+# start agent service
+systemctl daemon-reload
+systemctl enable vpn-agent.service
+systemctl restart vpn-agent.service
