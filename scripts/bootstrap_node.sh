@@ -15,11 +15,13 @@ curl -sf "$CONTROLPLANE_URL/internal/ca" \
   || { echo "ERROR: Failed to fetch CA cert"; exit 1; }
 
 echo "Requesting node certificate..."
+NODE_IP=$(curl -sf https://api.ipify.org || curl -sf https://ifconfig.me)
+
 response=$(curl -s \
   --cacert "$CERT_DIR/ca.crt" \
   -X POST "$CONTROLPLANE_URL/internal/nodes/enroll" \
   -H "Content-Type: application/json" \
-  -d "{\"node_id\":\"$NODE_ID\",\"token\":\"$BOOTSTRAP_TOKEN\"}")
+  -d "{\"node_id\":\"$NODE_ID\",\"token\":\"$BOOTSTRAP_TOKEN\",\"public_ip\":\"$NODE_IP\"}")
 
 if echo "$response" | jq -e '.cert' > /dev/null 2>&1; then
     echo "$response" | jq -r '.cert' > "$CERT_DIR/node.crt"
