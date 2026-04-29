@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 import logging
 import os
 
-from . import schemas
-from .wireguard import WireGuardManager
+import schemas
+from wireguard import WireGuardManager
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import logging
-from .config import settings
+from config import settings
 from agent.core.routers import router
 
 logging.basicConfig(
