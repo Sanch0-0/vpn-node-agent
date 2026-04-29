@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import logging
 from config import settings
-from agent.core.routers import router
+from core.routers import router
 
 logging.basicConfig(
     level=settings.LOG_LEVEL.upper(),
