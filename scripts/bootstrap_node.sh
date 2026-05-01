@@ -46,4 +46,33 @@ systemctl restart nginx
 # start agent service
 systemctl daemon-reload
 systemctl enable vpn-agent.service
+
+# === WireGuard interface setup ===
+echo "Configuring WireGuard interface..."
+
+WG_INTERFACE=${WG_INTERFACE:-wg0}
+WG_PORT=${WG_PORT:-51820}
+WG_SUBNET=${WG_SUBNET:-10.0.0.1/24}
+PRIVATE_KEY=$(cat /etc/wireguard/private.key)
+
+cat > /etc/wireguard/${WG_INTERFACE}.conf <<EOF
+[Interface]
+PrivateKey = ${PRIVATE_KEY}
+Address = ${WG_SUBNET}
+ListenPort = ${WG_PORT}
+SaveConfig = false
+EOF
+
+chmod 600 /etc/wireguard/${WG_INTERFACE}.conf
+
+# Bring up the interface
+wg-quick up ${WG_INTERFACE}
+
+# Enable on boot
+systemctl enable wg-quick@${WG_INTERFACE}
+
+echo "WireGuard interface ${WG_INTERFACE} is up"
+wg show
+
+
 systemctl restart vpn-agent.service
