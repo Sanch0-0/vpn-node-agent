@@ -5,7 +5,7 @@ from datetime import datetime
 
 # === PEER CREATE ===
 class AgentAddPeerRequest(BaseModel):
-    peer_id: str
+    peer_id: Optional[str] = None
     public_key: str
     allowed_ips: List[str]
 
