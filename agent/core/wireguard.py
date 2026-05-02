@@ -28,6 +28,7 @@ class WireGuardManager:
     def add_peer(
         self, public_key: str, allowed_ips: List[str], peer_id: Optional[str] = None
     ) -> None:
+        logger.warning("ADD_PEER CALLED")
         args = [
             "set",
             self.interface,
