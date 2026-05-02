@@ -147,3 +147,19 @@ WantedBy=multi-user.target
 EOF
 
 log "Setup complete. Run bootstrap_node.sh next."
+
+# -------------------------
+# 10. IP Forwarding + NAT 
+# -------------------------
+log "Enabling IP forwarding and NAT..."
+
+echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+sysctl -p
+
+MAIN_IFACE=$(ip route | grep default | awk '{print $5}' | head -1)
+iptables -t nat -A POSTROUTING -o "$MAIN_IFACE" -j MASQUERADE
+
+apt-get install -y -qq iptables-persistent netfilter-persistent
+netfilter-persistent save
+
+log "NAT configured on interface $MAIN_IFACE"
