@@ -1,10 +1,13 @@
 from fastapi import APIRouter, HTTPException
+from datetime import datetime, timezone
 import logging
+import psutil
 import os
 
 from core.schemas import (
     AgentAddPeerResponse,
     AgentAddPeerRequest,
+    AgentMetricsResponse,
     AgentRemovePeerResponse,
     AgentStatusResponse,
     WireGuardPeer,
@@ -71,3 +74,17 @@ async def get_wireguard_status():
     except Exception as e:
         logger.error(f"Failed to get wireguard status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/metrics", response_model=AgentMetricsResponse)
+def get_metrics():
+    transfer = wg_manager.get_transfer_stats()
+
+    return AgentMetricsResponse(
+        cpu_percent=psutil.cpu_percent(interval=0.5),
+        memory_percent=psutil.virtual_memory().percent,
+        transfer_rx_bytes=transfer["transfer_rx_bytes"],
+        transfer_tx_bytes=transfer["transfer_tx_bytes"],
+        active_peers=transfer["active_peers"],
+        timestamp=datetime.now(timezone.utc),
+    )

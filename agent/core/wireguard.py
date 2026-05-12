@@ -119,3 +119,34 @@ class WireGuardManager:
                 }
             )
         return peers
+
+    def get_transfer_stats(self) -> dict:
+        """
+        Aggregate rx/tx across all peers from wg show dump.
+        Returns total bytes transferred since interface up.
+        """
+        try:
+            output = self._run_wg_command(["show", self.interface, "dump"])
+            lines = output.strip().splitlines()
+
+            total_rx, total_tx = 0, 0
+            peer_count = 0
+
+            for line in lines[1:]:  # skip interface line
+                parts = line.split("\t")
+                if len(parts) < 7:
+                    continue
+                try:
+                    total_rx += int(parts[5])
+                    total_tx += int(parts[6])
+                    peer_count += 1
+                except (ValueError, IndexError):
+                    continue
+
+            return {
+                "transfer_rx_bytes": total_rx,
+                "transfer_tx_bytes": total_tx,
+                "active_peers": peer_count,
+            }
+        except RuntimeError:
+            return {"transfer_rx_bytes": 0, "transfer_tx_bytes": 0, "active_peers": 0}

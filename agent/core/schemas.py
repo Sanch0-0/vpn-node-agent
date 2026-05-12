@@ -30,6 +30,15 @@ class AgentStatusResponse(BaseModel):
     timestamp: datetime
 
 
+class AgentMetricsResponse(BaseModel):
+    cpu_percent: float
+    memory_percent: float
+    transfer_rx_bytes: int
+    transfer_tx_bytes: int
+    active_peers: int
+    timestamp: datetime
+
+
 # === WIREGUARD PEER INFO ===
 class WireGuardPeer(BaseModel):
     public_key: str
